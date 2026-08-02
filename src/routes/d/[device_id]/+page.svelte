@@ -13,7 +13,7 @@
   }>();
 
   // Konversi durasi operasional ke detik
-  let runTimeLeft = $state(durasiMenit * 60); 
+  let runTimeLeft = $derived(durasiMenit * 60); 
   let prepTimeLeft = $state(10); // Jeda persiapan 10 detik
 
   // State alur: PREPARATION (10s) -> RUNNING -> COMPLETED

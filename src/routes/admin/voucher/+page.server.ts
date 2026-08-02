@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { vouchers } from '$lib/db/schema'; // Sesuaikan path schema Anda
+import { vouchers } from '$lib/server/db/schema'; // Sesuaikan path schema Anda
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ platform }) => {

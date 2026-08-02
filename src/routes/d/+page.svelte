@@ -154,7 +154,6 @@
                     required
                     bind:value={voucherCode}
                     class="input input-bordered font-mono uppercase tracking-wider w-28 text-center"
-                    autofocus
                   />
 
                   <span>
