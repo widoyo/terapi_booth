@@ -1,7 +1,9 @@
 import type { RequestHandler } from './$types';
 import mqtt from 'mqtt';
+import { env } from '$env/dynamic/private';
 
-const MQTT_URL = 'mqtt://mqtt.prinus.net:14983';
+const MQTT_URL = env.MQTT_BROKER;
+const PIDIBOX_STATUS = env.PIDIBOX_STATUS_TOPIC
 
 // Storage koneksi browser yang aktif
 const subscribers = new Set<ReadableStreamDefaultController>();
@@ -22,9 +24,9 @@ function getMqttInstance() {
 
     // @ts-ignore
     globalThis.mqttClient.on('connect', () => {
-      console.log('[MQTT] Terhubung! Subscribe ke pidibox/status');
+      console.log('[MQTT] Terhubung! Subscribe ke topic');
       // @ts-ignore
-      globalThis.mqttClient.subscribe('pidibox/status', (err: any) => {
+      globalThis.mqttClient.subscribe(PIDIBOX_STATUS, (err: any) => {
         if (err) console.error('[MQTT] Gagal subscribe:', err);
       });
     });
@@ -36,7 +38,7 @@ function getMqttInstance() {
 
     // @ts-ignore
     globalThis.mqttClient.on('message', (topic: string, message: Buffer) => {
-      if (topic === 'pidibox/status') {
+      if (topic === PIDIBOX_STATUS) {
         const rawData = message.toString().trim();
 
 
@@ -51,8 +53,6 @@ function getMqttInstance() {
         }
       }
     });
-  } else {
-    console.log('/api/device/stream: globalThis: ', globalThis);
   }
   // @ts-ignore
   return globalThis.mqttClient;

@@ -1,7 +1,9 @@
 import type { RequestHandler } from './$types';
 import mqtt from 'mqtt';
+import { env } from '$env/dynamic/private';
 
-const MQTT_URL = 'mqtt://mqtt.prinus.net:14983';
+const MQTT_URL = env.MQTT_BROKER;
+const PIDIBOX_STATUS = env.PIDIBOX_STATUS_TOPIC
 
 // Set penyimpanan subscriber stream SSE aktif
 const subscribers = new Set<{ device_id: string; controller: ReadableStreamDefaultController }>();
@@ -15,14 +17,14 @@ if (!globalThis.mqttClient) {
     // @ts-ignore
     globalThis.mqttClient.on('connect', () => {
         // @ts-ignore
-        globalThis.mqttClient.subscribe('pidibox/status');
-        console.log('[MQTT] Sukses terhubung dan subscribe ke pidibox/status');
+        globalThis.mqttClient.subscribe(PIDIBOX_STATUS);
+        console.log('[MQTT] Sukses terhubung dan subscribe ke topic');
     });
 
     // Tempelkan listener 'message' DI SINI (hanya sekali seumur hidup aplikasi)
     // @ts-ignore
     globalThis.mqttClient.on('message', (topic: string, message: Buffer) => {
-        if (topic === 'pidibox/status') {
+        if (topic === PIDIBOX_STATUS) {
             try {
                 const rawData = message.toString();
                 const jsonPayload = JSON.parse(rawData);
