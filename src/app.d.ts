@@ -1,5 +1,8 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
+
+import type { MqttClient } from 'mqtt';
+
 declare global {
 	namespace App {
 		interface Platform {
@@ -14,6 +17,7 @@ declare global {
 		// interface PageData {}
 		// interface PageState {}
 	}
+	var mqttClient: MqttClient | undefined;
 }
 
 export {};

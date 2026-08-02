@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -19,5 +19,11 @@ export default defineConfig({
 				})
 			}
 		})
-	]
+	],
+    server: {
+        allowedHosts: ['pb.prinus.net']
+    },
+	ssr: {
+		noExternal: ['@lucide/svelte']
+	}
 });

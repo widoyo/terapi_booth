@@ -11,5 +11,14 @@
 		"directory": ".svelte-kit/cloudflare"
 	},
 	"workers_dev": true,
-	"preview_urls": true
+	"preview_urls": true,
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "pididb",
+			"database_id": "e4ff3a41-98ee-4260-8457-31a550424363",
+			"migrations_dir": "./drizzle"
+		}
+	]
 }

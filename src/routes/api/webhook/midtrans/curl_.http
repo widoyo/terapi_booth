@@ -1,0 +1,68 @@
+curl -X POST \
+  https://api.midtrans.com/v2/charge \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Basic U0ItTWlkLXNlcnZlci1yYWVZdmNVOTE4andMRU1hdmN4a1lJZ3U6' \
+  -H 'X-Override-Notification: https://pidibox.loca.lt/api/webhook/midtrans/' \
+  -d '{
+  "payment_type": "qris",
+  "transaction_details": {
+    "order_id": "order_2606-1",
+    "gross_amount": 60000
+  }
+}'
+
+
+curl -X POST \
+  https://app.sandbox.midtrans.com/snap/v1/transactions \
+  -H 'Accept: application/json'\
+  -H 'Authorization: Basic U0ItTWlkLXNlcnZlci1yYWVZdmNVOTE4andMRU1hdmN4a1lJZ3U6' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transaction_details": {
+        "order_id": "YOUR-ORDERID-123456",
+        "gross_amount": 10000
+    }
+}'
+
+curl -X POST \
+  https://api.sandbox.midtrans.com/v2/charge \
+  -H 'Accept: application/json'\
+  -H 'Authorization: Basic U0ItTWlkLXNlcnZlci1yYWVZdmNVOTE4andMRU1hdmN4a1lJZ3U6' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "payment_type": "gopay",
+    "transaction_details": {
+        "order_id": "order-101",
+        "gross_amount": 44000
+    }
+}'
+
+
+curl -X POST \
+  https://api.sandbox.midtrans.com/v2/charge \
+  -H 'Accept: application/json'\
+  -H 'Authorization: Basic U0ItTWlkLXNlcnZlci1yYWVZdmNVOTE4andMRU1hdmN4a1lJZ3U6' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "payment_type": "gopay",
+    "transaction_details": {
+        "order_id": "order-101",
+        "gross_amount": 44000
+    }
+}'
+{"status_code":"201","status_message":"Gopay transaction is created",
+"transaction_id":"b5accd3c-c119-42f8-9a7b-457a490567a9",
+"order_id":"order-101","merchant_id":"G584339305",
+"gross_amount":"44000.00","currency":"IDR",
+"payment_type":"gopay","transaction_time":"2026-06-29 18:40:10",
+"transaction_status":"pending","fraud_status":"accept",
+"actions":[{"name":"generate-qr-code",
+"method":"GET","url":"https://api.sandbox.midtrans.com/v2/gopay/b5accd3c-c119-42f8-9a7b-457a490567a9/qr-code"},
+{"name":"generate-qr-code-v2",
+"method":"GET","url":"https://merchants-app.sbx.midtrans.com/v4/qris/gopay/A120260629114010dQHT7dNyWzID/qr-code"},
+{"name":"deeplink-redirect",
+"method":"GET","url":"https://simulator.sandbox.midtrans.com/v2/deeplink/detail?tref=A120260629114010dQHT7dNyWzID"},
+{"name":"get-status","method":"GET","url":"https://api.sandbox.midtrans.com/v2/b5accd3c-c119-42f8-9a7b-457a490567a9/status"},
+{"name":"cancel","method":"POST","url":"https://api.sandbox.midtrans.com/v2/b5accd3c-c119-42f8-9a7b-457a490567a9/cancel"}],
+"qr_string":"","expiry_time":"2026-06-29 18:55:10"}
