@@ -1,7 +1,7 @@
 // src/hooks.server.ts
 import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
-import { getDb } from '$lib/server/db';
+import { db } from '$lib/server/db';
 import { validateAdminSession } from '$lib/server/db/queries';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -12,8 +12,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const sessionToken = event.cookies.get('admin_session');
     let isAuthorized = false;
 
-    if (sessionToken && event.platform?.env?.DB) {
-      const db = getDb(event.platform.env.DB);
+    if (sessionToken) {
       const session = await validateAdminSession(db, sessionToken);
       if (session) {
         event.locals.adminUser = session.username;

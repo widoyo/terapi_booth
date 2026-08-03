@@ -19,11 +19,13 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20260626.1",
 		"@sveltejs/adapter-cloudflare": "^7.2.8",
+		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.3.0",
+		"@types/better-sqlite3": "^9.6.0",
 		"@types/node": "^22",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.45.2",
@@ -36,6 +38,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.27.0",
+		"better-sqlite3": "^13.0.2",
 		"daisyui": "^5.5.23",
 		"mqtt": "^5.15.1"
 	}

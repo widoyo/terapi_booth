@@ -9,9 +9,9 @@ import { QrCode, Ticket } from '@lucide/svelte';
       <p class="py-6">
         Dapatkan <b>Kode Voucher</b> untuk mengakses layanan terapi di outlet terdekat.
       </p>
-      <a href="/bayar" class="btn btn-primary">Beli Voucher <QrCode class="w-5 h-5" /></a>
+      <a href="/bayar" class="btn btn-primary"><QrCode class="w-5 h-5" /> Beli Voucher</a>
       <div class="divider py-6 text-disabled">ATAU</div>
-      <a href="/d" class="btn btn-primary">Sudah Punya Voucher <Ticket class="w-5 h-5" /></a>
+      <a href="/d" class="btn btn-primary"><Ticket class="w-5 h-5" /> Sudah Punya Voucher </a>
     </div>
   </div>
 </div>

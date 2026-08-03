@@ -1,10 +1,9 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getDb } from '$lib/server/db';
-import { getDeviceById, getVoucherByCode } from '$lib/server/db/queries';
+import { db } from '$lib/server/db';
+import { getDeviceById, getVoucherByCode, markVoucherAsUsed } from '$lib/server/db/queries';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
-  const d1 = await getDb(platform?.env?.DB);
   const deviceId = params.device_id;
   const voucherCode = url.searchParams.get('v')?.trim().toUpperCase();
 
@@ -15,8 +14,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
   // 2. Ambil data perangkat & validasi voucher dari DB / Service Anda
   // (Sesuaikan logika query DB ini dengan Drizzle/ORM yang Anda gunakan)
-  const device = await getDeviceById(d1, deviceId);
-  const voucher = await getVoucherByCode(d1, voucherCode);
+  const device = await getDeviceById(db, deviceId);
+  const voucher = await getVoucherByCode(db, voucherCode);
 
   // Jika device tidak ditemukan, voucher salah, atau voucher sudah terpakai
   if (!device || !voucher || voucher.isUsed || voucher.deviceId !== deviceId) {
@@ -44,7 +43,7 @@ export const actions: Actions = {
   startDevice: async ({ params, url }) => {
     const voucherCode = url.searchParams.get('v');
     if (voucherCode) {
-      await markVoucherAsUsed(voucherCode);
+      await markVoucherAsUsed(db, voucherCode);
     }
     return { success: true };
   },

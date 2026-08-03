@@ -1,15 +1,12 @@
 // src/routes/bayar/+page.server.ts
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { getDb } from '$lib/server/db';
+import { db } from '$lib/server/db';
 import { generateVoucherCode, createVoucherTx } from '$lib/server/db/queries';
 
 export const actions: Actions = {
-  default: async ({ platform }) => {
+  default: async () => {
     try {
-      // 1. Dapatkan instance Drizzle melalui getDb
-      const db = getDb(platform?.env?.DB);
-
       // 2. Eksekusi pembuatan voucher via queries helper
       const kodeVoucher = await createVoucherTx(db, generateVoucherCode);
 

@@ -9,6 +9,15 @@ interface NewUserData {
   tenantId?: number | null;
 }
 
+export async function markVoucherAsUsed(db: AppDb, voucherCode: string) {
+  await db.update(vouchers)
+    .set({
+      isUsed: 1,
+      usedAt: sql`datetime('now')`
+    })
+    .where(eq(vouchers.voucherCode, voucherCode));
+}
+
 /**
  * Hash password sederhana menggunakan SHA-256 (Web Crypto API)
  */

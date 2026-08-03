@@ -1,12 +1,12 @@
 // src/routes/admin/login/+page.server.ts
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { getDb } from '$lib/server/db';
+import { db } from '$lib/server/db';
 import { createAdminSession } from '$lib/server/db/queries';
 import { env } from '$env/dynamic/private'; // Atau dari platform.env
 
 export const actions: Actions = {
-  default: async ({ request, platform, cookies }) => {
+  default: async ({ request, cookies }) => {
     const data = await request.formData();
     const username = data.get('username')?.toString().trim();
     const password = data.get('password')?.toString();
@@ -16,15 +16,14 @@ export const actions: Actions = {
     }
 
     // Validasi sederhana (Ganti dengan kredensial/hash asli Anda dari DB / Env)
-    const validUsername = platform?.env?.ADMIN_USER || 'admin';
-    const validPassword = platform?.env?.ADMIN_PASS || 'admin123';
+    const validUsername = env?.ADMIN_USER || 'admin';
+    const validPassword = env?.ADMIN_PASS || 'admin123';
 
     if (username !== validUsername || password !== validPassword) {
       return fail(401, { message: 'Username atau password salah.' });
     }
 
     // Buat sesi di D1 DB
-    const db = getDb(platform?.env?.DB);
     const token = await createAdminSession(db, username);
 
     // Simpan token di HTTP-Only Cookie
