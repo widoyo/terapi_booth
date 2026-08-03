@@ -17,8 +17,6 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260626.1",
-		"@sveltejs/adapter-cloudflare": "^7.2.8",
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -34,7 +32,6 @@
 		"tailwindcss": "^4.3.0",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.16",
-		"wrangler": "^4.97.0"
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.27.0",
