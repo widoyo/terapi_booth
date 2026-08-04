@@ -1,4 +1,3 @@
-import type { AppDb } from './index';
 import { devices, vouchers, adminSessions, users } from '$lib/server/db/schema';
 import { eq, or, sql } from 'drizzle-orm';
 

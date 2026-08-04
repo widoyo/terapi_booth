@@ -1,8 +1,9 @@
 // src/routes/d/+page.server.ts
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { drizzle } from 'drizzle-orm/d1';
+
 import { devices, vouchers } from '$lib/server/db/schema';
+import { db } from '$lib/server/db';
 import { eq, and, sql } from 'drizzle-orm';
 import mqtt from 'mqtt';
 
@@ -16,10 +17,6 @@ if (!globalThis.mqttClient) {
 }
 
 export const load: PageServerLoad = async ({ platform }) => {
-  const d1 = platform?.env?.DB;
-  if (!d1) return { devicesList: [] };
-
-  const db = drizzle(d1);
   const list = await db.select().from(devices);
 
   // Bobot urutan: IDLE (1), RUNNING (2), OFFLINE (3)
@@ -51,11 +48,6 @@ export const actions: Actions = {
     if (voucherCode.length !== 4) {
       return fail(400, { message: 'Kode Voucher harus 4 digit.' });
     }
-
-    const d1 = platform?.env?.DB;
-    if (!d1) return fail(500, { message: 'Database tidak ditemukan.' });
-
-    const db = drizzle(d1);
 
     // 1. Validasi voucher
     const [voucher] = await db
