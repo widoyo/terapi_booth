@@ -25,6 +25,7 @@
 		"@tailwindcss/vite": "^4.3.0",
 		"@types/better-sqlite3": "^9.6.0",
 		"@types/node": "^22",
+		"@types/qrcode": "^1.5.6",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.45.2",
 		"svelte": "^5.56.1",
@@ -37,6 +38,7 @@
 		"@lucide/svelte": "^1.27.0",
 		"better-sqlite3": "^13.0.2",
 		"daisyui": "^5.5.23",
-		"mqtt": "^5.15.1"
+		"mqtt": "^5.15.1",
+		"qrcode": "^1.5.4"
 	}
 }

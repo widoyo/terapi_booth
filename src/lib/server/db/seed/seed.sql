@@ -17,3 +17,8 @@ INSERT INTO tenant_configs (tenant_id, harga_default, durasi_menit) VALUES
    (1, 60000, 40),
    (2, 75000, 40);
 
+INSERT INTO users (username, passwordHash, role, tenantId) 
+VALUES 
+  ('admin', '2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea', 'SUPER_ADMIN', NULL),
+  ('tenant1', '2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea', 'TENANT_ADMIN', 1),
+  ('tenant2', '2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea', 'TENANT_ADMIN', 2);

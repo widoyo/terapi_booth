@@ -1,5 +1,7 @@
 import { devices, vouchers, adminSessions, users } from '$lib/server/db/schema';
-import { eq, or, sql } from 'drizzle-orm';
+import { tenants, outlets, tenantConfigs } from '$lib/server/db/schema';
+import { eq, count, sql } from 'drizzle-orm';
+import { db, type DB } from '$lib/server/db';
 
 interface NewUserData {
   username: string;
@@ -8,13 +10,91 @@ interface NewUserData {
   tenantId?: number | null;
 }
 
-export async function markVoucherAsUsed(db: AppDb, voucherCode: string) {
-  await db.update(vouchers)
-    .set({
-      isUsed: 1,
-      usedAt: sql`datetime('now')`
+// Mengambil semua tenant beserta jumlah outlet & device
+export async function getAllTenants() {
+  return await db
+    .select({
+      tenantId: tenants.tenantId,
+      namaTenant: tenants.namaTenant,
+      alamat: tenants.alamat,
+      createdAt: tenants.createdAt,
+      totalOutlets: count(outlets.outletId),
+      totalDevices: count(devices.deviceId)
     })
-    .where(eq(vouchers.voucherCode, voucherCode));
+    .from(tenants)
+    .leftJoin(outlets, eq(tenants.tenantId, outlets.tenantId))
+    .leftJoin(devices, eq(tenants.tenantId, devices.tenantId))
+    .groupBy(tenants.tenantId);
+}
+
+// Mengambil detail 1 tenant beserta relasi outlet, device, user, dan config
+export async function getTenantDetail(tenantId: number) {
+  const tenantData = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.tenantId, tenantId))
+    .limit(1);
+
+  if (!tenantData[0]) return null;
+
+  const [outletList, deviceList, userList, configData] = await Promise.all([
+    db.select().from(outlets).where(eq(outlets.tenantId, tenantId)),
+    db.select().from(devices).where(eq(devices.tenantId, tenantId)),
+    db.select({
+      userId: users.userId,
+      username: users.username,
+      role: users.role,
+      lastLoginAt: users.lastLoginAt
+    }).from(users).where(eq(users.tenantId, tenantId)),
+    db.select().from(tenantConfigs).where(eq(tenantConfigs.tenantId, tenantId)).limit(1)
+  ]);
+
+  return {
+    ...tenantData[0],
+    outlets: outletList,
+    devices: deviceList,
+    users: userList,
+    config: configData[0] || null
+  };
+}
+
+/**
+ * Verifikasi plain password terhadap hash SHA-256 yang tersimpan
+ */
+export async function verifyPassword(passwordPlain: string, storedHash: string): Promise<boolean> {
+  const inputHash = await hashPassword(passwordPlain);
+  return inputHash === storedHash;
+}
+
+/**
+ * Mengambil data user berdasarkan username
+ */
+export async function getUserByUsername(dbClient: DB, username: string) {
+  try {
+    const cleanUsername = username.trim().toLowerCase();
+    const result = await dbClient
+      .select()
+      .from(users)
+      .where(eq(users.username, cleanUsername))
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error(`[DB Query Error] Gagal mengambil user ${username}:`, error);
+    return null;
+  }
+}
+
+export async function markVoucherAsUsed(dbClient: DB, voucherCode: string, deviceId?: string) {
+  const cleanCode = voucherCode.trim().toUpperCase();
+  await dbClient.update(vouchers)
+    .set({
+      voucherCode: sql`'_' || ${cleanCode}`, // Tandai voucher sebagai terpakai dengan menambahkan prefix '_'
+      isUsed: 1,
+      usedAt: sql`datetime('now')`,
+      deviceId: deviceId || null
+    })
+    .where(eq(vouchers.voucherCode, cleanCode));
 }
 
 /**
@@ -28,10 +108,10 @@ async function hashPassword(password: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function createUser(db: AppDb, data: NewUserData) {
+export async function createUser(dbClient: DB, data: NewUserData) {
   const passwordHash = await hashPassword(data.passwordPlain);
 
-  const [newUser] = await db
+  const [newUser] = await dbClient
     .insert(users)
     .values({
       username: data.username.trim().toLowerCase(),
@@ -44,12 +124,12 @@ export async function createUser(db: AppDb, data: NewUserData) {
   return newUser;
 }
 
-export async function createAdminSession(db: AppDb, username: string) {
+export async function createAdminSession(dbClient: DB, username: string) {
   const token = crypto.randomUUID();
   // Sesi berlaku 1 hari (24 jam)
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  await db.insert(adminSessions).values({
+  await dbClient.insert(adminSessions).values({
     id: token,
     username,
     expiresAt
@@ -58,39 +138,45 @@ export async function createAdminSession(db: AppDb, username: string) {
   return token;
 }
 
-export async function validateAdminSession(db: AppDb, token: string) {
-  const result = await db
-    .select()
+export async function validateAdminSession(dbClient: DB, token: string) {
+  const result = await dbClient
+    .select({
+      sessionId: adminSessions.id,
+      username: adminSessions.username,
+      expiresAt: adminSessions.expiresAt,
+      role: users.role,
+      tenantId: users.tenantId
+    })
     .from(adminSessions)
+    .innerJoin(users, eq(adminSessions.username, users.username))
     .where(eq(adminSessions.id, token))
     .limit(1);
 
   const session = result[0];
   if (!session) return null;
 
-  // Cek apakah expired
+  // Cek kadaluwarsa
   if (session.expiresAt < new Date()) {
-    await db.delete(adminSessions).where(eq(adminSessions.id, token));
+    await dbClient.delete(adminSessions).where(eq(adminSessions.id, token));
     return null;
   }
 
   return session;
 }
-
-export async function deleteAdminSession(db: AppDb, token: string) {
+export async function deleteAdminSession(dbClient: DB, token: string) {
   await db.delete(adminSessions).where(eq(adminSessions.id, token));
 }
 
 /**
  * Mengambil data detail perangkat berdasarkan deviceId
  * 
- * @param db - Instans Drizzle ORM (AppDb)
+ * @param dbClient - Instans Drizzle ORM (AppDb)
  * @param deviceId - ID Perangkat (contoh: '2606-1')
  * @returns Data device atau null jika tidak ditemukan
  */
-export async function getDeviceById(db: AppDb, deviceId: string) {
+export async function getDeviceById(dbClient: DB, deviceId: string) {
   try {
-    const result = await db
+    const result = await dbClient
       .select()
       .from(devices)
       .where(eq(devices.deviceId, deviceId))
@@ -118,15 +204,15 @@ export function generateVoucherCode(): string {
 /**
  * Mengambil data voucher berdasarkan kode unik 4 digit.
  * 
- * @param db - Instans Drizzle ORM (AppDb)
+ * @param dbClient - Instans Drizzle ORM (AppDb)
  * @param code - Kode voucher (contoh: 'A1B2')
  * @returns Data voucher atau null jika tidak ditemukan
  */
-export async function getVoucherByCode(db: AppDb, code: string) {
+export async function getVoucherByCode(dbClient: DB, code: string) {
   try {
     const cleanCode = code.trim().toUpperCase();
 
-    const result = await db
+    const result = await dbClient
       .select()
       .from(vouchers)
       .where(eq(vouchers.voucherCode, cleanCode))
@@ -142,14 +228,8 @@ export async function getVoucherByCode(db: AppDb, code: string) {
 /**
  * Membersihkan voucher kadaluwarsa/terpakai dan membuat voucher baru.
  */
-export async function createVoucherTx(db: AppDb, generateCodeFn: () => string) {
+export async function createVoucherTx(dbClient: DB, generateCodeFn: () => string) {
   // 1. Hapus voucher bekas / kadaluwarsa
-  await db.delete(vouchers).where(
-    or(
-      eq(vouchers.isUsed, 1),
-      sql`datetime(${vouchers.kadaluwarsa}) < datetime('now')`
-    )
-  );
 
   // 2. Simpan voucher baru dengan mekanisme retry jika bentrok
   let kodeVoucher = '';
@@ -162,11 +242,11 @@ export async function createVoucherTx(db: AppDb, generateCodeFn: () => string) {
     const voucherId = `vch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     try {
-      await db.insert(vouchers).values({
+      await dbClient.insert(vouchers).values({
         id: voucherId,
         voucherCode: kodeVoucher,
         tipePotongan: 'NOMINAL',
-        nilaiPotongan: 10000,
+        nilaiPotongan: 0,
         harga: 10000,
         kadaluwarsa: sql`datetime('now', '+7 day')`,
         isUsed: 0

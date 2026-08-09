@@ -8,7 +8,7 @@ import type { PageServerLoad, Actions } from './$types';
 export const load: PageServerLoad = async ({ platform }) => {
 
   // Ambil seluruh list voucher
-  const voucherList = await db.select().from(vouchers);
+  const voucherList = await db.select().from(vouchers).orderBy(vouchers.createdAt, 'desc'); // Urutkan berdasarkan kadaluwarsa terbaru
 
   return {
     voucherList

@@ -3,11 +3,14 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { validateAdminSession } from '$lib/server/db/queries';
+import { initMqtt } from '$lib/server/mqtt';
+
+// Inisialisasi koneksi MQTT saat server start
+initMqtt();
 
 export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
 
-  // Hanya periksa jika akses menuju rute /admin
   if (path.startsWith('/admin')) {
     const sessionToken = event.cookies.get('admin_session');
     let isAuthorized = false;
@@ -15,17 +18,20 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (sessionToken) {
       const session = await validateAdminSession(db, sessionToken);
       if (session) {
-        event.locals.adminUser = session.username;
+        // Simpan objek berisi username dan role
+        event.locals.user = {
+          username: session.username,
+          role: session.role,
+          tenantId: session.tenantId // Tambahkan tenantId ke locals
+        };
         isAuthorized = true;
       }
     }
 
-    // Jika mencoba akses /admin/login tapi SUDAH login -> lempar ke /admin
     if (path === '/admin/login' && isAuthorized) {
       throw redirect(303, '/admin');
     }
 
-    // Jika mencoba akses /admin/* (selain /admin/login) tapi BELUM login -> lempar ke /admin/login
     if (path !== '/admin/login' && !isAuthorized) {
       throw redirect(303, '/admin/login');
     }

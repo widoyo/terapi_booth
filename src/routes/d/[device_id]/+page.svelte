@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   let { 
@@ -22,6 +23,13 @@
   let prepInterval: ReturnType<typeof setInterval>;
   let runInterval: ReturnType<typeof setInterval>;
 
+  // === STATE SWIPE TO STOP ===
+  let isDragging = $state(false);
+  let dragX = $state(0);
+  let maxDrag = $state(0);
+  let trackEl = $state<HTMLDivElement | null>(null);
+  let stopFormEl = $state<HTMLFormElement | null>(null);
+
   // Jalankan hitung mundur persiapan 10 detik saat komponen dimuat
   $effect(() => {
     startPreparation();
@@ -38,8 +46,25 @@
     }, 1000);
   }
 
-  function startRunning() {
+  async function startRunning() {
     currentStatus = 'RUNNING';
+
+    // Eksekusi penandaan voucher di server
+    const voucherCode = $page.url.searchParams.get('v');
+    if (voucherCode) {
+      try {
+        const formData = new FormData();
+        await fetch(`?/startDevice&v=${encodeURIComponent(voucherCode)}`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'x-sveltekit-action': 'true'
+          }
+        });
+      } catch (err) {
+        console.error('Gagal memperbarui status voucher:', err);
+      }
+    }
 
     runInterval = setInterval(() => {
       runTimeLeft -= 1;
@@ -66,10 +91,40 @@
     if (runInterval) clearInterval(runInterval);
   }
 
+  // === LOGIKA DRAG / SWIPE ===
+  function onPointerDown(e: PointerEvent) {
+    if (!trackEl) return;
+    isDragging = true;
+    maxDrag = trackEl.clientWidth - 56;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    if (!isDragging) return;
+    const rect = trackEl!.getBoundingClientRect();
+    let x = e.clientX - rect.left - 28;
+    if (x < 0) x = 0;
+    if (x > maxDrag) x = maxDrag;
+    dragX = x;
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    if (dragX >= maxDrag * 0.85) {
+      dragX = maxDrag;
+      handleStop();
+      if (stopFormEl) stopFormEl.requestSubmit();
+    } else {
+      dragX = 0;
+    }
+  }
+
   onDestroy(() => clearAllTimers());
 </script>
 
-<div class="space-y-5 animate-fadeIn flex flex-col items-center w-full max-w-sm mx-auto">
+<div class="space-y-5 animate-fadeIn flex flex-col items-center w-full max-w-sm mx-auto select-none">
 
   <!-- TAMPILAN 1: WAKTU TUNGGU PERSIAPAN (10 DETIK) -->
   {#if currentStatus === 'PREPARATION'}
@@ -123,18 +178,46 @@
         {/if}
       </div>
 
-      <!-- Tombol Penghentian Darurat (Stop) -->
-      <form method="POST" action="?/stop" use:enhance>
-        <button
-          type="submit"
-          onclick={handleStop}
-          class="btn btn-error text-white w-full h-12 font-bold shadow-md flex items-center justify-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><rect width="6" height="6" x="9" y="9" rx="1"/>
-          </svg>
-          HENTIKAN ALAT (STOP)
-        </button>
+      <!-- SWIPE TO STOP DARURAT -->
+      <form method="POST" action="?/stop" use:enhance bind:this={stopFormEl}>
+        <div class="space-y-2">
+          <div 
+            bind:this={trackEl}
+            class="relative w-full h-14 bg-error/15 border border-error/30 rounded-full flex items-center p-1 overflow-hidden touch-none"
+          >
+            <!-- Teks Petunjuk di Belakang -->
+            <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-error uppercase tracking-wider pointer-events-none opacity-80">
+              Geser untuk STOP ➔
+            </span>
+
+            <!-- Tombol Geser (Handle) dengan Aksesibilitas ARIA -->
+            <div
+              role="slider"
+              aria-label="Geser untuk menghentikan alat"
+              aria-valuenow={Math.round((dragX / (maxDrag || 1)) * 100)}
+              aria-valuemin="0"
+              aria-valuemax="100"
+              tabindex="0"
+              class="w-12 h-12 bg-error text-white rounded-full flex items-center justify-center shadow-md cursor-grab active:cursor-grabbing z-10 transition-transform duration-75 focus:outline-none focus:ring-2 focus:ring-error"
+              style="transform: translateX({dragX}px);"
+              onpointerdown={onPointerDown}
+              onpointermove={onPointerMove}
+              onpointerup={onPointerUp}
+              onpointercancel={onPointerUp}
+              onkeydown={(e) => {
+                if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                  handleStop();
+                  if (stopFormEl) stopFormEl.requestSubmit();
+                }
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </div>
+          </div>
+          <p class="text-[10px] text-base-content/50">Usap tombol merah sampai ujung untuk penghentian darurat.</p>
+        </div>
       </form>
     </div>
 

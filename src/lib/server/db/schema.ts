@@ -100,7 +100,10 @@ export const vouchers = sqliteTable("vouchers", {
   harga: real("harga").notNull(),
   wa: text("wa"),
   kadaluwarsa: text("kadaluwarsa").notNull(),
-  isUsed: integer("is_used").default(0).notNull()
+  isUsed: integer("is_used").default(0).notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  deviceId: text("device_id").references(() => devices.deviceId, { onDelete: 'set null' })
 }, (table) => ({
   // PARTIAL UNIQUE INDEX: Unik HANYA saat is_used = 0
   uniqueActiveVoucher: uniqueIndex("unique_active_voucher_code")

@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms';
   import { onMount } from 'svelte';
   import type { PageData, ActionData } from './$types';
+  import { goto } from '$app/navigation';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -142,40 +143,42 @@
           <div>
             {#if isIdle}
               {#if isSelected}
-                <!-- Form Inline Voucher -->
-                <form method="POST" use:enhance class="flex items-center gap-4">
-                  <input type="hidden" name="deviceId" value={device.deviceId} />
-                  
-                  <input
-                    type="text"
-                    name="voucherCode"
-                    placeholder="VOUCHER"
-                    maxLength="4"
-                    required
-                    bind:value={voucherCode}
-                    class="input input-bordered font-mono uppercase tracking-wider w-28 text-center"
-                  />
+<form 
+    onsubmit={(e) => {
+      e.preventDefault();
+      if (voucherCode.length === 4) {
+        goto(`/d/${device.deviceId}?v=${voucherCode.toUpperCase()}`);
+      }
+    }} 
+    class="flex items-center gap-2"
+  >
+    <input
+      type="text"
+      placeholder="VOUCHER"
+      maxLength="4"
+      required
+      bind:value={voucherCode}
+      class="input input-bordered font-mono uppercase tracking-wider w-28 text-center"
+    />
 
-                  <span>
-                  <button
-                    type="submit"
-                    class="btn btn-primary"
-                    disabled={voucherCode.length !== 4}
-                  >
-                    Mulai
-                  </button>
+    <button
+      type="submit"
+      class="btn btn-primary"
+      disabled={voucherCode.length !== 4}
+    >
+      Mulai
+    </button>
 
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-square"
-                    onclick={batalPilih}
-                    title="Batal"
-                  >
-                    ✕
-                  </button>
-                  </span>
-                </form>
-              {:else}
+    <button
+      type="button"
+      class="btn btn-ghost btn-square"
+      onclick={batalPilih}
+      title="Batal"
+    >
+      ✕
+    </button>
+  </form>
+                {:else}
                 <button
                   type="button"
                   class="btn btn-primary btn-outline w-full md:w-auto"

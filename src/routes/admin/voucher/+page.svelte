@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { Ticket } from '@lucide/svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -20,9 +21,9 @@
   }
 </script>
 
-<div class="p-6 max-w-5xl mx-auto">
+<div class="p-0 max-w-5xl mx-auto">
   <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold tracking-tight">Daftar Voucher</h1>
+    <h1 class="text-2xl font-bold tracking-tight"><Ticket class="inline-block w-6 h-6 mr-2" /> Daftar Voucher</h1>
   </div>
 
   <div class="overflow-x-auto border border-base-300 rounded-lg shadow-sm">
@@ -30,9 +31,9 @@
       <thead>
         <tr class="bg-base-200">
           <th>Kode Voucher</th>
-          <th>Potongan</th>
-          <th>Masa Kadaluwarsa</th>
           <th>Status</th>
+          <th>Kadaluwarsa</th>
+          <th>Potongan</th>
           <th>Tenant ID</th>
           <th class="text-right">Aksi</th>
         </tr>
@@ -49,18 +50,18 @@
             <tr class="hover">
               <td class="font-mono font-bold">{voucher.voucherCode}</td>
               <td>
-                {#if voucher.tipePotongan === 'PERSEN'}
-                  <span class="badge badge-secondary">{voucher.nilaiPotongan}%</span>
-                {:else}
-                  <span class="badge badge-accent">{formatRupiah(voucher.nilaiPotongan)}</span>
-                {/if}
-              </td>
-              <td>{formatDate(voucher.kadaluwarsa)}</td>
-              <td>
                 {#if voucher.isUsed === 1}
                   <span class="badge badge-ghost text-xs">Terpakai</span>
                 {:else}
                   <span class="badge badge-success badge-outline text-xs">Aktif</span>
+                {/if}
+              </td>
+              <td>{formatDate(voucher.kadaluwarsa)}</td>
+              <td>
+                {#if voucher.tipePotongan === 'PERSEN'}
+                  <span class="badge badge-secondary">{voucher.nilaiPotongan}%</span>
+                {:else}
+                  <span class="badge badge-accent">{formatRupiah(voucher.nilaiPotongan)}</span>
                 {/if}
               </td>
               <td>{voucher.tenantId}</td>

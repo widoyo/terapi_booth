@@ -5,13 +5,21 @@ import type { MqttClient } from 'mqtt';
 
 declare global {
 	namespace App {
-		interface Platform {
-			env: Env;
-			ctx: ExecutionContext;
-			caches: CacheStorage;
-			cf?: IncomingRequestCfProperties
+		interface Locals {
+			user?: {
+				username: string;
+				role: 'SUPER_ADMIN' | 'TENANT_ADMIN';
+				tenantId?: number | null; // Tambahkan tenantId ke interface user
+			};
 		}
+		interface Platform {
+			env: {
+				MQTT_BROKER: string;
+				PIDIBOX_STATUS_TOPIC: string;
+				PIDIBOX_CMD_TOPIC: string;
+			}
 
+		}
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
@@ -20,4 +28,4 @@ declare global {
 	var mqttClient: MqttClient | undefined;
 }
 
-export {};
+export { };
