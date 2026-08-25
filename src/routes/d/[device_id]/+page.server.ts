@@ -135,7 +135,7 @@ export const actions: Actions = {
     } catch (err: any) {
       return error(400, err.message || 'Gagal memulai sesi terapi.');
     }
-  }
+  },
   // Action Emergency Stop
   stop: async ({ params }) => {
     const deviceId = params.device_id;

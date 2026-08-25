@@ -16,7 +16,7 @@
 
   // Generate QR Code saat komponen / voucher siap
   if (form?.kodeVoucher) {
-    QRCode.toDataURL(`https://pb.prinus.net/d?v=${form.kodeVoucher}`, {
+    QRCode.toDataURL(`https://pb.prinus.net/d?v=${form?.kodeVoucher}`, {
       width: 160,
       margin: 1,
       color: { dark: "#1f2937", light: "#ffffff" },

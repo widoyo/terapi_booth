@@ -55,9 +55,9 @@
         <QrCode class="w-5 h-5" /> Beli Voucher
       </a>
 
-      <div class="divider text-xs text-base-content/50 my-2">ATAU</div>
+      <div class="divider text-xs text-base-content/50 my-5">ATAU</div>
 
-      <a href="/d" class="btn btn-outline btn-primary w-full">
+      <a href="/d" class="btn btn-outline btn-primary w-full mt-2">
         <Ticket class="w-5 h-5" /> Sudah Punya Voucher
       </a>
     </div>
