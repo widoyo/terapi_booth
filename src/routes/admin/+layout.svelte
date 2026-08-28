@@ -49,6 +49,9 @@
         {#if user.role === 'SUPER_ADMIN'}
           <!-- Menu Khusus SUPER_ADMIN -->
           <a href="/admin/tenant" class="btn btn-ghost justify-start">Kelola Tenant</a>
+          <a href="/admin/outlet" class="btn btn-ghost justify-start">Kelola Outlet</a>
+          <a href="/admin/therapist" class="btn btn-ghost justify-start">Kelola Terapi</a>
+          <a href="/admin/device" class="btn btn-ghost justify-start">Kelola Device</a>
           <a href="/admin/users" class="btn btn-ghost justify-start">Kelola User</a>
           <a href="/admin/voucher" class="btn btn-ghost justify-start">Voucher</a>
           <a href="/admin/setting" class="btn btn-ghost justify-start">Pengaturan System</a>

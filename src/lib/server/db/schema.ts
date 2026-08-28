@@ -23,6 +23,8 @@ export const outlets = sqliteTable("outlets", {
   tenantId: integer("tenant_id").notNull().references(() => tenants.tenantId, { onDelete: 'cascade' }),
   namaOutlet: text("nama_outlet").notNull(),
   alamat: text("alamat"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 }, (table) => ({
   idxOutletsTenant: index("idx_outlets_tenant").on(table.tenantId),
@@ -47,12 +49,15 @@ export const devices = sqliteTable("devices", {
   deviceId: text("device_id").primaryKey(), // e.g., "2606-1"
   deviceHash: text("device_hash").notNull().unique(),
   tenantId: integer("tenant_id").notNull().references(() => tenants.tenantId, { onDelete: 'cascade' }),
-  macAddress: text("mac_address").unique(),
+  outletId: integer("outlet_id").references(() => outlets.outletId, { onDelete: 'set null' }),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   hargaKustom: integer("harga_kustom"),
   statusAktif: integer("status_aktif").default(1),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 }, (table) => ({
-  idxDevicesHash: index("idx_devices_hash").on(table.deviceHash)
+  idxDevicesHash: index("idx_devices_hash").on(table.deviceHash),
+  idxDevicesOutlet: index("idx_devices_outlet").on(table.outletId)
 }));
 
 // 4. TENANT CONFIGS
