@@ -1,21 +1,26 @@
 <script lang="ts">
-  import { ArrowLeft, Cpu, CheckCircle2, XCircle, Ticket } from '@lucide/svelte';
+  import { ArrowLeft, Cpu, CheckCircle2, XCircle, Ticket, ChevronRight, X } from '@lucide/svelte';
   import { enhance } from '$app/forms';
 
   let { data, form } = $props();
   let outlet = $derived(data.outlet);
   let deviceList = $derived(data.devices ?? []);
 
-  let selectedDeviceId = $state('');
+  // Menyimpan ID pidiBox yang sedang aktif dipilih form-nya
+  let activeDeviceId = $state('');
   let isSubmitting = $state(false);
 
-  // Set default ke perangkat pertama yang aktif
-  $effect(() => {
-    if (deviceList.length > 0 && !selectedDeviceId) {
-      const activeDev = deviceList.find((d) => d.statusAktif === 1);
-      selectedDeviceId = activeDev ? activeDev.deviceId : deviceList[0].deviceId;
+  function toggleDeviceForm(id: string) {
+    if (activeDeviceId === id) {
+      activeDeviceId = '';
+    } else {
+      activeDeviceId = id;
     }
-  });
+  }
+
+  function closeForm() {
+    activeDeviceId = '';
+  }
 </script>
 
 <div class="p-6 max-w-md mx-auto space-y-4">
@@ -30,96 +35,113 @@
   {/if}
 
   <!-- Card Detail Outlet & Perangkat -->
-  <div class="card bg-base-100 border border-base-300 p-5 shadow-sm space-y-3">
+  <div class="card bg-base-100 border border-base-300 p-5 shadow-sm space-y-4">
     <div>
       <span class="badge badge-primary text-[10px]">Outlet Terpilih</span>
       <h2 class="text-xl font-bold text-primary mt-1">{outlet.namaOutlet}</h2>
+      <p class="text-xs text-base-content/80 leading-relaxed border-t border-base-200 pt-2 mt-2">
+        {outlet.alamat || 'Alamat tidak tersedia.'}
+      </p>
     </div>
 
-    <p class="text-xs text-base-content/80 leading-relaxed border-t border-base-200 pt-2">
-      {outlet.alamat || 'Alamat tidak tersedia.'}
-    </p>
-
-    <!-- Daftar Perangkat -->
-    <div class="pt-2">
-      <p class="text-xs font-semibold mb-2 flex items-center gap-1">
-        <Cpu class="w-4 h-4 text-primary" /> Pilih Perangkat pidiBox:
+    <!-- Daftar Perangkat pidiBox -->
+    <div class="space-y-3">
+      <p class="text-xs font-semibold flex items-center gap-1">
+        <Cpu class="w-4 h-4 text-primary" /> Daftar Perangkat pidiBox:
       </p>
 
-      <div class="space-y-2">
+      <div class="space-y-2.5">
         {#each deviceList as dev}
-          <label
-            class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors {selectedDeviceId === dev.deviceId ? 'border-primary bg-primary/5' : 'border-base-200 bg-base-100'}"
+          <div 
+            class="rounded-xl border transition-all overflow-hidden {activeDeviceId === dev.deviceId ? 'border-primary bg-primary/5 shadow-sm' : 'border-base-200 bg-base-100'}"
           >
-            <div class="flex items-center gap-3">
-              <input
-                type="radio"
-                name="deviceChoice"
-                value={dev.deviceId}
-                bind:group={selectedDeviceId}
-                disabled={dev.statusAktif !== 1}
-                class="radio radio-primary radio-sm"
-              />
-              <span class="font-mono font-bold text-sm">{dev.deviceId}</span>
+            <!-- Baris Utama Perangkat -->
+            <div class="p-3 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-lg text-base-content">{dev.deviceId}</span>
+                {#if dev.statusAktif === 1}
+                  <span class="badge badge-success badge-sm gap-1 text-[10px]">
+                    <CheckCircle2 class="w-3 h-3" /> Siap
+                  </span>
+                {:else}
+                  <span class="badge badge-error badge-sm gap-1 text-[10px]">
+                    <XCircle class="w-3 h-3" /> Off / Dipakai
+                  </span>
+                {/if}
+              </div>
+
+              {#if dev.statusAktif === 1}
+                <button
+                  type="button"
+                  onclick={() => toggleDeviceForm(dev.deviceId)}
+                  class="btn btn-xs {activeDeviceId === dev.deviceId ? 'btn-ghost' : 'btn-primary'} gap-1"
+                >
+                  <span>Gunakan Alat ini</span>
+                  <ChevronRight class="w-3 h-3 transition-transform {activeDeviceId === dev.deviceId ? 'rotate-90' : ''}" />
+                </button>
+              {/if}
             </div>
 
-            {#if dev.statusAktif === 1}
-              <span class="badge badge-success badge-sm gap-1 text-[10px]">
-                <CheckCircle2 class="w-3 h-3" /> Siap
-              </span>
-            {:else}
-              <span class="badge badge-error badge-sm gap-1 text-[10px]">
-                <XCircle class="w-3 h-3" /> Dipakai / Offline
-              </span>
+            <!-- Form Input Voucher Sebaris -->
+            {#if activeDeviceId === dev.deviceId}
+              <form
+                method="POST"
+                action="?/useVoucher"
+                use:enhance={() => {
+                  isSubmitting = true;
+                  return async ({ update }) => {
+                    isSubmitting = false;
+                    await update();
+                  };
+                }}
+                class="p-3 pt-0 border-t border-primary/20 bg-base-100/60"
+              >
+                <input type="hidden" name="deviceId" value={dev.deviceId} />
+
+                <div class="flex items-center gap-2 mt-2">
+                  <div class="relative flex-1">
+                    <Ticket class="w-4 h-4 text-primary absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      name="voucherCode"
+                      placeholder="KODE VOUCHER (4 DIGIT)"
+                      maxLength={4}
+                      required
+                      autofocus
+                      class="input input-lg input-bordered input-primary w-full pl-8 font-mono uppercase tracking-wider text-lg"
+                    />
+                  </div>
+
+                  <!-- Tombol Submit -->
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    class="btn btn-lg btn-primary shrink-0"
+                  >
+                    {#if isSubmitting}
+                      <span class="loading loading-spinner loading-xs"></span>
+                    {:else}
+                      Proses
+                    {/if}
+                  </button>
+
+                  <!-- Tombol Batal (X) -->
+                  <button
+                    type="button"
+                    onclick={closeForm}
+                    class="btn btn-lg btn-square btn-ghost text-base-content/60 hover:text-error shrink-0"
+                    title="Batal"
+                  >
+                    <X class="w-6 h-6" />
+                  </button>
+                </div>
+              </form>
             {/if}
-          </label>
+          </div>
         {:else}
-          <p class="text-xs text-base-content/40 italic">Belum ada perangkat terdaftar di outlet ini.</p>
+          <p class="text-xs text-base-content/40 italic py-2">Belum ada perangkat terdaftar di outlet ini.</p>
         {/each}
       </div>
     </div>
   </div>
-
-  <!-- Form Gunakan Voucher via Form Action Server -->
-  <form
-    method="POST"
-    action="?/useVoucher"
-    use:enhance={() => {
-      isSubmitting = true;
-      return async ({ update }) => {
-        isSubmitting = false;
-        await update();
-      };
-    }}
-    class="card bg-primary/5 border border-primary/20 p-5 shadow-sm space-y-3"
-  >
-    <input type="hidden" name="deviceId" value={selectedDeviceId} />
-
-    <h3 class="font-bold text-sm flex items-center gap-1.5">
-      <Ticket class="w-4 h-4 text-primary" /> Masukkan Kode Voucher
-    </h3>
-
-    <div class="space-y-2">
-      <input
-        type="text"
-        name="voucherCode"
-        placeholder="KODE VOUCHER (4 Digit)"
-        maxLength={4}
-        required
-        class="input input-bordered input-primary w-full text-center text-lg font-mono uppercase tracking-widest"
-      />
-
-      <button
-        type="submit"
-        disabled={!selectedDeviceId || isSubmitting}
-        class="btn btn-primary w-full"
-      >
-        {#if isSubmitting}
-          <span class="loading loading-spinner loading-xs"></span> Memproses...
-        {:else}
-          Gunakan Voucher
-        {/if}
-      </button>
-    </div>
-  </form>
 </div>

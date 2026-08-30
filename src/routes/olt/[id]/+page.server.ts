@@ -13,26 +13,44 @@ if (!globalThis.mqttClient) {
   // @ts-ignore
   globalThis.mqttClient = mqtt.connect(MQTT_URL);
 
+  // Storage memori lokal server untuk menyimpan status live pidiBox
+  // @ts-ignore
+  globalThis.liveDeviceStatuses = globalThis.liveDeviceStatuses || {};
+
   // @ts-ignore
   globalThis.mqttClient.on('connect', () => {
     // @ts-ignore
-    globalThis.mqttClient.subscribe('pidibox/status');
+    globalThis.mqttClient.subscribe('pidibox/status', (err) => {
+      if (err) console.error('Gagal subscribe pidibox/status:', err);
+    });
   });
-
-  // Penyimpanan state perangkat di memori server
-  // @ts-ignore
-  globalThis.liveDeviceStatuses = globalThis.liveDeviceStatuses || {};
 
   // @ts-ignore
   globalThis.mqttClient.on('message', (topic: string, message: Buffer) => {
     if (topic === 'pidibox/status') {
       try {
         const payload = JSON.parse(message.toString());
-        if (payload.deviceId && typeof payload.status !== 'undefined') {
+        // Mendukung key 'deviceId' maupun 'pidibox'
+        const devId = payload.deviceId || payload.pidibox;
+
+        if (devId && typeof payload.status !== 'undefined') {
+          let statusNum = 0;
+
+          // Parsing jika status berupa integer (1 = Aktif/Siap, 0 = Dipakai/Off)
+          if (typeof payload.status === 'number') {
+            statusNum = payload.status;
+          } 
+          // Parsing jika status berupa string ("IDLE", "RUNNING", "OFFLINE")
+          else if (typeof payload.status === 'string') {
+            statusNum = payload.status.toUpperCase() === 'IDLE' ? 1 : 0;
+          }
+
           // @ts-ignore
-          globalThis.liveDeviceStatuses[payload.deviceId] = payload.status;
+          globalThis.liveDeviceStatuses[devId] = statusNum;
         }
-      } catch {}
+      } catch (err) {
+        console.error('Format payload MQTT pidibox/status tidak valid:', message.toString());
+      }
     }
   });
 }
@@ -71,7 +89,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-  useVoucher: async ({ request, params }) => {
+  useVoucher: async ({ request }) => {
     const formData = await request.formData();
     const voucherCode = formData.get('voucherCode')?.toString().toUpperCase().trim();
     const deviceId = formData.get('deviceId')?.toString().trim();

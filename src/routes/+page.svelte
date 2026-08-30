@@ -92,10 +92,22 @@
       </h1>
       <p class="text-lg py-2 text-left">
         <b>1.</b> Pastikan kaki dalam keadaan <b>bersih dan kering</b>.<br>
-        <b>2.</b> Duduklah dengan <b>posisi nyaman, santai</b>, satu sesi 30 menit<br>
+        <b>2.</b> Duduklah dengan <b>posisi nyaman, santai</b>, satu sesi <strong>30 menit</strong><br>
         <b>3.</b> Tempelkan telapak kaki ke permukaan alat terapi, <b>JANGAN angkat telapak kaki</b> selama terapi<br>
-        <b>4.</b> Masukkan Kode Voucher untuk menggunakan alat terpilih<br>
+        <b>4.</b> Masukkan <Ticket class="inline-block w-4 h-4 text-error" /> <strong>Kode Voucher</strong> untuk menggunakan alat terpilih<br>
       </p>
+
+      <p class="mt-9 border-t">&nbsp;</p>
+          <a href="/bayar" class="btn btn-primary w-full">
+        <QrCode class="w-5 h-5" /> Beli Voucher
+      </a>
+
+      <div class="divider text-xs text-base-content/50 my-5">ATAU</div>
+
+            <a href="/olt" class="btn btn-warning w-full">
+        <MapPinHouse class="w-5 h-5" /> Temukan Outlet Terdekat
+      </a>
     </div>
+
   </section>
 </main>

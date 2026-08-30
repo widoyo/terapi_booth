@@ -90,20 +90,20 @@
     {#if !form?.success}
       <!-- Tampilan Sebelum Bayar -->
       <h1 class="text-3xl font-bold">Beli Voucher</h1>
-      <ol class="list-decimal list-inside text-left mt-6 text-sm space-y-1">
+      <ol class="list-decimal text-lg list-inside text-left mt-6 space-y-1">
         <li>
-          Voucher berupa <b>kode unik</b> yang digunakan untuk mengakses layanan
+          Voucher berupa <b>kode unik</b> (4 karakter) untuk menggunakan alat
           terapi.
         </li>
         <li>Voucher berlaku selama 7 hari.</li>
         <li>Voucher dapat dikirim ke WhatsApp</li>
         <li>Voucher yang telah dibeli tidak dapat diuangkan.</li>
+        <li>Kebijakan <a href="/t&s" class="link link-hover">Syarat & Ketentuan</a></li>
       </ol>
 
       <p class="py-4 text-sm text-base-content/80">
         Siapkan pembayaran QRIS senilai <span
-          class="font-bold text-base-content">IDR ??.000</span
-        >.
+          class="font-bold text-base-content">IDR ??.000</span>.
       </p>
 
       <button
