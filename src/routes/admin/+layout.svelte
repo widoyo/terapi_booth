@@ -13,7 +13,7 @@
   <div class="drawer-content flex flex-col min-h-screen">
     <!-- Navbar Atas (Hanya muncul di Layar HP/Mobile) -->
     <div class="w-full navbar bg-base-200 border-b border-base-300 md:hidden flex justify-between px-4">
-      <span class="text-lg font-bold">Terapi Booth</span>
+      <span class="text-lg font-bold">Outlet Terapi</span>
       <label for="admin-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -34,8 +34,9 @@
 
     <aside class="w-64 min-h-full border-r border-base-300 bg-base-200 p-4 flex flex-col gap-2 font-medium">
       <!-- Header Sidebar (Desktop) -->
+      <a href="/" class="btn btn-ghost justify-start">Beranda</a>
       <div class="flex items-center justify-between px-2 py-3 border-b border-base-300 mb-2">
-        <span class="text-lg font-bold">Terapi Booth</span>
+        <span class="text-lg font-bold">Outlet Terapi</span>
       </div>
 
       {#if user?.role === undefined}
@@ -79,7 +80,7 @@
       {:else}
         <div class="mt-auto border-t border-base-300 pt-2">
           <a href="/admin/login" class="btn btn-ghost justify-start text-primary w-full">
-            Login Admin
+            Login Administratif
           </a>
         </div>
       {/if}

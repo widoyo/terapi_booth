@@ -24,7 +24,7 @@
 </script>
 
 <div class="p-6 max-w-md mx-auto space-y-4">
-  <a href="/olt" class="btn btn-ghost btn-sm gap-1 pl-0">
+  <a href="/outlet" class="btn btn-ghost btn-sm gap-1 pl-0">
     <ArrowLeft class="w-4 h-4" /> Kembali
   </a>
 
@@ -37,7 +37,7 @@
   <!-- Card Detail Outlet & Perangkat -->
   <div class="card bg-base-100 border border-base-300 p-5 shadow-sm space-y-4">
     <div>
-      <span class="badge badge-primary text-[10px]">Outlet Terpilih</span>
+      <span class="badge badge-outline badge-neutral text-xs">Outlet Terpilih</span>
       <h2 class="text-xl font-bold text-primary mt-1">{outlet.namaOutlet}</h2>
       <p class="text-xs text-base-content/80 leading-relaxed border-t border-base-200 pt-2 mt-2">
         {outlet.alamat || 'Alamat tidak tersedia.'}
@@ -46,8 +46,8 @@
 
     <!-- Daftar Perangkat pidiBox -->
     <div class="space-y-3">
-      <p class="text-xs font-semibold flex items-center gap-1">
-        <Cpu class="w-4 h-4 text-primary" /> Daftar Perangkat pidiBox:
+      <p class="text-sm font-semibold flex items-center gap-1">
+        <Cpu class="w-4 h-4 text-primary" /> Daftar Perangkat:
       </p>
 
       <div class="space-y-2.5">
@@ -74,7 +74,7 @@
                 <button
                   type="button"
                   onclick={() => toggleDeviceForm(dev.deviceId)}
-                  class="btn btn-xs {activeDeviceId === dev.deviceId ? 'btn-ghost' : 'btn-primary'} gap-1"
+                  class="btn btn-md {activeDeviceId === dev.deviceId ? 'btn-ghost' : 'btn-primary'} gap-1"
                 >
                   <span>Gunakan Alat ini</span>
                   <ChevronRight class="w-3 h-3 transition-transform {activeDeviceId === dev.deviceId ? 'rotate-90' : ''}" />
@@ -108,7 +108,7 @@
                       maxLength={4}
                       required
                       autofocus
-                      class="input input-lg input-bordered input-primary w-full pl-8 font-mono uppercase tracking-wider text-lg"
+                      class="input input-lg input-bordered input-primary w-full text-center pl-4 font-mono uppercase tracking-wider text-lg"
                     />
                   </div>
 

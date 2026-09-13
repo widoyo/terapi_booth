@@ -135,7 +135,6 @@ export const GET: RequestHandler = async ({ url }) => {
 
   // 3. Filter outlet dalam radius 50 km
   const nearbyOutlets = processedOutlets
-    .filter((outlet) => outlet.distanceKm <= 50)
     .sort((a, b) => a.distanceKm - b.distanceKm);
 
   // 4. Jika tidak ada outlet dalam radius 50 km

@@ -60,6 +60,15 @@ export const devices = sqliteTable("devices", {
   idxDevicesOutlet: index("idx_devices_outlet").on(table.outletId)
 }));
 
+export const deviceLogs = sqliteTable("device_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  deviceId: text("device_id").notNull().references(() => devices.deviceId, { onDelete: 'cascade' }),
+  status: text("status").notNull(),
+  timestamp: text("timestamp").default(sql`CURRENT_TIMESTAMP`)
+}, (table) => ({
+  idxDeviceLogsDevice: index("idx_device_logs_device").on(table.deviceId)
+}));
+
 // 4. TENANT CONFIGS
 export const tenantConfigs = sqliteTable("tenant_configs", {
   tenantId: integer("tenant_id").primaryKey().references(() => tenants.tenantId, { onDelete: 'cascade' }),

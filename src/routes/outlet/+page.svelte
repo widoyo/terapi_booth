@@ -22,7 +22,7 @@
         const { latitude, longitude } = position.coords;
 
         try {
-          const res = await fetch(`/olt?lat=${latitude}&lng=${longitude}`);
+          const res = await fetch(`/outlet?lat=${latitude}&lng=${longitude}`);
           if (!res.ok) throw new Error('Gagal mengambil data outlet.');
 
           const data = await res.json();
@@ -55,7 +55,7 @@
     <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
       <MapPin class="w-6 h-6 text-primary" /> Outlet Terdekat
     </h1>
-    <p class="text-xs text-base-content/70">Mencari lokasi terapi di sekitar Anda.</p>
+    <p class="text-base-content/70">Mencari lokasi terapi di sekitar Anda.</p>
   </div>
 
   <button onclick={deteksiLokasiDanCari} class="btn btn-primary w-full gap-2" disabled={loading}>
@@ -78,20 +78,21 @@
           <div class="card bg-base-100 border border-base-300 p-4 shadow-sm space-y-3">
             <div class="flex justify-between items-start gap-2">
               <div>
-                <h3 class="font-bold text-base text-primary">{item.namaOutlet}</h3>
-                <p class="text-xs font-medium text-base-content/80 mt-0.5">
-                  Kec. {item.kecamatan}, {item.kota}
-                </p>
+                <span class=""></span>
+                <h3 class="font-bold text-base text-primary">{item.kota}</h3>
               </div>
               <div>
-                <a href={item.gmapsDirectionUrl} target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline btn-ghost">
-                  Rute <ExternalLink class="w-3.5 h-3.5" />
-                </a>
-                <span class="badge badge-primary font-mono text-xs shrink-0">{item.distanceKm} km</span>
+                
+                <a href={item.gmapsDirectionUrl} target="_blank" rel="noopener noreferrer" class="font-base">
+                <span class="badge badge-outline badge-neutral font-mono text-xs shrink-0">{item.distanceKm} km
+                  <Navigation class="w-4 h-4" />
+                </span></a>
                 </div>
             </div>
 
-            <p class="text-xs text-base-content/70 leading-relaxed">{item.alamat || 'Alamat tidak tersedia.'}</p>
+            <p class="text-xs text-base-content/70 leading-relaxed">
+              <strong>{item.namaOutlet}</strong><br>
+              {item.alamat || 'Alamat tidak tersedia.'}, Kec. {item.kecamatan}</p>
 
             <div class="pt-2 border-t border-base-200 flex items-center justify-between text-xs">
               <div class="flex items-center gap-1.5">
@@ -106,7 +107,7 @@
               <div class="flex gap-2">
 
                 {#if item.totalDevices > 0}
-                  <a href={`/olt/${item.outletId}`} class="btn btn-xs btn-primary">Pilih Outlet Ini</a>
+                  <a href={`/outlet/${item.outletId}`} class="btn btn-xs btn-primary">Pilih Outlet Ini</a>
                 {/if}
               </div>
             </div>

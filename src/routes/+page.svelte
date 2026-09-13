@@ -71,7 +71,7 @@
 
       <div class="divider text-xs text-base-content/50 my-5">ATAU</div>
 
-            <a href="/olt" class="btn btn-warning w-full">
+            <a href="/outlet" class="btn btn-warning w-full">
         <MapPinHouse class="w-5 h-5" /> Temukan Outlet Terdekat
       </a>
       
@@ -104,7 +104,7 @@
 
       <div class="divider text-xs text-base-content/50 my-5">ATAU</div>
 
-            <a href="/olt" class="btn btn-warning w-full">
+            <a href="/outlet" class="btn btn-warning w-full">
         <MapPinHouse class="w-5 h-5" /> Temukan Outlet Terdekat
       </a>
     </div>

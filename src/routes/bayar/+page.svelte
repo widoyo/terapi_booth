@@ -15,15 +15,17 @@
   let qrDataUrl = $state("");
 
   // Generate QR Code saat komponen / voucher siap
-  if (form?.kodeVoucher) {
-    QRCode.toDataURL(`https://pb.prinus.net/d?v=${form?.kodeVoucher}`, {
-      width: 160,
-      margin: 1,
-      color: { dark: "#1f2937", light: "#ffffff" },
-    }).then((url) => {
-      qrDataUrl = url;
-    });
-  }
+  $effect(() => {
+    if (form?.kodeVoucher) {
+      QRCode.toDataURL(`https://pb.prinus.net/d?v=${form.kodeVoucher}`, {
+        width: 160,
+        margin: 1,
+        color: { dark: "#1f2937", light: "#ffffff" },
+      }).then((url) => {
+        qrDataUrl = url;
+      });
+    }
+  });
 
   // Hitung tanggal 7 hari ke depan, atur jam ke 20:00
   function getTanggalKadaluwarsa() {
@@ -69,7 +71,8 @@
         });
       }
       const tglExpired = getTanggalKadaluwarsa();
-      const pesan = `[pidiBox] Kode Voucher terapi Anda: *${form.kodeVoucher}*.\nBerlaku hingga: *${tglExpired}*.\n\nTerima kasih!`;
+      const urlVoucher = `https://pb.prinus.net/d?v=${form.kodeVoucher}`;
+      const pesan = `*[pidiBox]* Kode Voucher terapi Anda: *${form.kodeVoucher}*.\nBerlaku hingga: *${tglExpired}*.\n\nGunakan Voucher: ${urlVoucher}\n\nTerima kasih!`;
       const urlWa = `https://wa.me/${nomorPonsel}?text=${encodeURIComponent(pesan)}`;
 
       window.open(urlWa, "_blank");
@@ -162,17 +165,17 @@
         <div class="notch notch-left bg-base-200"></div>
         <div class="notch notch-right bg-base-200"></div>
       </div>
-      <a href="/d?v={form.kodeVoucher}" class="btn btn-3xl btn-primary" type="button" >
-        Gunakan Sekarang
-      </a>
       {#if !tampilFormWa}
         <button
           type="button"
-          class="text-sm text-primary underline mt-2 cursor-pointer hover:opacity-80 border-none bg-transparent"
+          class="btn btn-3xl btn-primary mt-3"
           onclick={() => (tampilFormWa = true)}
-        ><ExternalLink class="inline-block w-4 h-4 mr-1" /> 
-          Kirim ke WhatsApp
+        >
+          Kirim kode ke WhatsApp
         </button>
+        <p class="text-xs text-base-content/70">
+          Sebagai pengingat untuk menggunakan voucher
+        </p>
       {:else}
         <div
           class="mt-4 pt-4 border-t border-base-300 flex flex-col items-center gap-3"
@@ -214,10 +217,14 @@
           </button> <button class="btn btn-sm btn-ghost w-full" type="button" onclick={() => (tampilFormWa = false)}>Batal</button>
         </div>
       {/if}
+      <div class="divider text-xs text-base-content/50 my-5">ATAU</div>
+      <a href="/d?v={form.kodeVoucher}" class="btn btn-3xl btn-primary btn-outline mt-5" type="button" >
+        Gunakan Sekarang
+      </a>
     {/if}
 
     {#if form?.message}
-      <div class="alert alert-error mt-4 text-sm">
+      <div class="alert alert-error text-sm">
         <span>{form.message}</span>
       </div>
     {/if}
