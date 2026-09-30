@@ -2,3 +2,18 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
+
+/* Mendaftarkan variabel ke utilitas Tailwind CSS v4 */
+@theme {
+  --color-primary: oklch(52.7% 0.154 150.069);
+  --color-primary-content: oklch(98% 0 0);
+}
+
+/* Menimpa tema DaisyUI v5 di semua kondisi (light/dark/custom theme) */
+@layer base {
+  :root,
+  [data-theme] {
+    --color-primary: oklch(52.7% 0.154 150.069) !important;
+    --color-primary-content: oklch(98% 0 0) !important;
+  }
+}

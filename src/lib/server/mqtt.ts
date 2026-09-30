@@ -2,16 +2,32 @@ import mqtt from 'mqtt';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { deviceLogs, devices } from '$lib/server/db/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
-// 1. Variabel client diletakkan di luar fungsi (Module Scope / Singleton)
+export interface DeviceStatus {
+  deviceId: string;
+  status: string;
+  isActive: boolean;
+  lastSeen: number; // Unix Epoch Timestamp (ms)
+  lastUp?: string | null; // ISO Date String
+  firmwareBuild?: string;
+  uptimeSeconds?: number;
+}
+
 let client: mqtt.MqttClient | null = null;
-const lastKnownStatuses = new Map();
+const lastKnownStatuses = new Map<string, DeviceStatus>();
 
-// Helper function untuk auto-insert device baru jika belum terdaftar
+export function getDeviceStatus(deviceId: string): DeviceStatus | undefined {
+  return lastKnownStatuses.get(deviceId);
+}
+
+export function getAllDevicesStatus(): DeviceStatus[] {
+  return Array.from(lastKnownStatuses.values());
+}
+
 async function ensureDeviceExists(pidibox: string) {
-  // Buat hash placeholder sederhana jika deviceHash belum ada
   const defaultHash = `hash-${pidibox}`; 
-  const DEFAULT_TENANT_ID = 1; // Pastikan tenant_id dengan ID ini sudah ada di database kamu
+  const DEFAULT_TENANT_ID = 1;
 
   await db.insert(devices)
     .values({
@@ -23,58 +39,114 @@ async function ensureDeviceExists(pidibox: string) {
     .onConflictDoNothing({ target: devices.deviceId });
 }
 
-export function initMqtt() {
-  // Jika client sudah dibuat sebelumnya, kembalikan instance yang ada
-  if (client) {
-    return client;
+// Mengisi in-memory map dari SQLite saat server baru dinyalakan
+async function seedInitialStatuses() {
+  try {
+    // Ambil semua device beserta status log terakhirnya
+    const allDevices = await db.select({
+      deviceId: devices.deviceId,
+      lastUp: devices.lastUp
+    }).from(devices);
+
+    for (const dev of allDevices) {
+      const latestLog = await db.select()
+        .from(deviceLogs)
+        .where(eq(deviceLogs.deviceId, dev.deviceId))
+        .orderBy(desc(deviceLogs.id))
+        .limit(1);
+
+      if (latestLog.length > 0) {
+        lastKnownStatuses.set(dev.deviceId, {
+          deviceId: dev.deviceId,
+          status: latestLog[0].status,
+          isActive: true,
+          lastSeen: new Date(latestLog[0].timestamp || Date.now()).getTime(),
+          lastUp: dev.lastUp
+        });
+      }
+    }
+    console.log(`[MQTT] In-memory status seeded for ${lastKnownStatuses.size} devices`);
+  } catch (err) {
+    console.error('[MQTT] Failed to seed initial statuses:', err);
   }
+}
+
+export function initMqtt() {
+  if (client) return client;
+
+  // Jalankan seeding data awal dari SQLite
+  seedInitialStatuses();
 
   const brokerUrl = env.MQTT_BROKER || 'mqtt://127.0.0.1:14983';
 
-  // 2. Inisialisasi instance baru jika belum ada
   client = mqtt.connect(brokerUrl, {
     reconnectPeriod: 2000
   });
 
   client.on('connect', () => {
     console.log('[MQTT] Terhubung ke broker lokal');
-    client?.subscribe(env.PIDIBOX_STATUS_TOPIC);
+    if (env.PIDIBOX_STATUS_TOPIC) {
+      client?.subscribe(env.PIDIBOX_STATUS_TOPIC);
+    }
   });
 
   client.on('message', async (topic, message) => {
-    console.log(`[MQTT] ${topic}:`, message.toString());
     try {
-      // Asumsi payload JSON: { "deviceId": "box-01", "status": "running" }
       const payload = JSON.parse(message.toString());
       if (typeof payload !== 'object' || payload === null) return;
-      let { pidibox, state } = payload;
-      console.log(`[MQTT] Received status update for ${pidibox}: ${state}`);
 
+      let { pidibox, state } = payload;
       if (!pidibox || !state) return;
 
-      if ('build_time' in payload) {
-        state = 'startup'; // Override status jika ada build_time
+      const hasBuildTime = 'build_time' in payload;
+      if (hasBuildTime) {
+        state = 'startup';
       }
-      const currentStatus = lastKnownStatuses.get(pidibox);
 
-      // Cek in-memory: abaikan jika status tidak berubah
-      if (currentStatus === state) {
+      const nowIso = new Date().toISOString();
+      const current = lastKnownStatuses.get(pidibox);
+      const isStatusChanged = !current || current.status !== state;
+
+      // HANYA proses jika status berubah atau membawa parameter build_time baru
+      if (!isStatusChanged && !hasBuildTime) {
+        // Cukup update lastSeen jika status sama
+        if (current) current.lastSeen = Date.now();
         return;
       }
 
-      // 1. Pastikan device terdaftar dulu di tabel devices
       await ensureDeviceExists(pidibox);
 
-      // Update memori & tulis ke SQLite hanya jika status berubah
-      lastKnownStatuses.set(pidibox, state);
+      let newLastUp = current?.lastUp || null;
 
-      await db.insert(deviceLogs).values({
+      // Update kolom lastUp jika mengandung build_time
+      if (hasBuildTime) {
+        newLastUp = nowIso;
+        await db.update(devices)
+          .set({ lastUp: newLastUp })
+          .where(eq(devices.deviceId, pidibox));
+      }
+
+      // 1. Simpan ke database HANYA jika status berubah
+      if (isStatusChanged) {
+        await db.insert(deviceLogs).values({
+          deviceId: pidibox,
+          status: state,
+          timestamp: nowIso
+        });
+        console.log(`[DB Write] ${pidibox} status changed: ${current?.status || 'none'} -> ${state}`);
+      }
+
+      // 2. Update status in-memory
+      lastKnownStatuses.set(pidibox, {
         deviceId: pidibox,
         status: state,
-        timestamp: new Date().toISOString()
+        isActive: true,
+        lastSeen: Date.now(),
+        lastUp: newLastUp,
+        firmwareBuild: payload.build_time || current?.firmwareBuild,
+        uptimeSeconds: payload.uptime || current?.uptimeSeconds
       });
 
-      console.log(`[DB Write] ${pidibox} status changed: ${currentStatus} -> ${state}`);
     } catch (err) {
       console.error('[MQTT] Failed to process message:', err);
     }
@@ -87,20 +159,39 @@ export function initMqtt() {
   return client;
 }
 
-// 3. Helper jika ingin menggunakan instance client di tempat lain (misal: publikasi pesan dari API)
 export function getMqttClient() {
   return client;
 }
 
 async function handleShutdown() {
   if (client && client.connected) {
-    // Tutup koneksi MQTT secara bersih
     await client.end();
     console.log('[MQTT] Connection closed gracefully');
   }
   process.exit(0);
 }
 
-// Tangkap sinyal shutdown aplikasi (misal Ctrl+C atau restart PM2)
+/**
+ * Helper untuk mengirimkan perintah/payload MQTT menggunakan koneksi singleton yang sudah ada.
+ */
+export function publishMqttCmd(topic: string, payload: object | string): boolean {
+  if (!client || !client.connected) {
+    console.warn('[MQTT] Tidak dapat mengirim pesan, client belum terhubung.');
+    return false;
+  }
+
+  const message = typeof payload === 'object' ? JSON.stringify(payload) : payload;
+  
+  client.publish(topic, message, { qos: 1 }, (err) => {
+    if (err) {
+      console.error(`[MQTT] Gagal publish ke ${topic}:`, err);
+    } else {
+      console.log(`[MQTT] Publish sukses ke ${topic}:`, message);
+    }
+  });
+
+  return true;
+}
+
 process.on('SIGINT', handleShutdown);
 process.on('SIGTERM', handleShutdown);

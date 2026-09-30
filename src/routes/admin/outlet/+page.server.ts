@@ -19,6 +19,9 @@ export const load: PageServerLoad = async ({ locals }) => {
         outletHash: outlets.outletHash,
         namaOutlet: outlets.namaOutlet,
         alamat: outlets.alamat,
+        kota: outlets.kota,
+        kecamatan: outlets.kecamatan,
+        kelurahan: outlets.kelurahan,
         latitude: outlets.latitude,
         longitude: outlets.longitude,
         createdAt: outlets.createdAt,
@@ -44,6 +47,9 @@ export const load: PageServerLoad = async ({ locals }) => {
         outletHash: outlets.outletHash,
         namaOutlet: outlets.namaOutlet,
         alamat: outlets.alamat,
+        kota: outlets.kota,
+        kecamatan: outlets.kecamatan,
+        kelurahan: outlets.kelurahan,
         latitude: outlets.latitude,
         longitude: outlets.longitude,
         createdAt: outlets.createdAt,
@@ -72,10 +78,13 @@ export const actions: Actions = {
     const formData = await request.formData();
     const namaOutlet = formData.get('namaOutlet')?.toString().trim();
     const alamat = formData.get('alamat')?.toString().trim();
+    const kota = formData.get('kota')?.toString().trim();
+    const kecamatan = formData.get('kecamatan')?.toString().trim();
+    const kelurahan = formData.get('kelurahan')?.toString().trim();
     const latRaw = formData.get('latitude')?.toString().trim();
     const lngRaw = formData.get('longitude')?.toString().trim();
-    const latitude = latRaw ? Number(latRaw) : null;
-    const longitude = lngRaw ? Number(lngRaw) : null;
+    const latitude = latRaw || null;
+    const longitude = lngRaw || null;
 
     let tenantId = user.tenantId;
     if (user.role === 'SUPER_ADMIN') {
@@ -93,6 +102,9 @@ export const actions: Actions = {
       await db.insert(outlets).values({
         namaOutlet,
         alamat: alamat || null,
+        kota: kota || null,
+        kecamatan: kecamatan || null,
+        kelurahan: kelurahan || null,
         tenantId,
         outletHash,
         latitude,
@@ -112,10 +124,13 @@ export const actions: Actions = {
     const outletId = Number(formData.get('outletId'));
     const namaOutlet = formData.get('namaOutlet')?.toString().trim();
     const alamat = formData.get('alamat')?.toString().trim();
+    const kota = formData.get('kota')?.toString().trim();
+    const kecamatan = formData.get('kecamatan')?.toString().trim();
+    const kelurahan = formData.get('kelurahan')?.toString().trim();
     const latRaw = formData.get('latitude')?.toString().trim();
     const lngRaw = formData.get('longitude')?.toString().trim();
-    const latitude = latRaw ? Number(latRaw) : null;
-    const longitude = lngRaw ? Number(lngRaw) : null;
+    const latitude = latRaw || null;
+    const longitude = lngRaw || null;
 
     if (!outletId || !namaOutlet) return fail(400, { message: 'Data outlet tidak valid.' });
 
@@ -143,6 +158,9 @@ export const actions: Actions = {
         .set({
           namaOutlet,
           alamat: alamat || null,
+          kota: kota || null,
+          kecamatan: kecamatan || null,
+          kelurahan: kelurahan || null,
           latitude,
           longitude,
           ...(user.role === 'SUPER_ADMIN' && tenantId ? { tenantId } : {})

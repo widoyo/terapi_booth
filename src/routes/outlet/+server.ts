@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { outlets, devices } from '$lib/server/db/schema';
-import { isNotNull, and, eq } from 'drizzle-orm';
+import { isNotNull, and } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
 // Rumus Haversine untuk menghitung jarak antara dua koordinat (dalam kilometer)
@@ -118,8 +118,11 @@ export const GET: RequestHandler = async ({ url }) => {
       const totalDevices = outletDevs.length;
       const activeDevices = outletDevs.filter((d) => d.statusAktif === 1).length;
 
-      // Link Google Maps Direction dari posisi user ke outlet
+      // Link Google Maps Direction (Rute Driving)
       const gmapsDirectionUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${outletLat},${outletLng}&travelmode=driving`;
+
+      // Link Google Maps Place / Pin Point
+      const gmapsPlaceUrl = `https://www.google.com/maps/search/?api=1&query=${outletLat},${outletLng}`;
 
       return {
         ...outlet,
@@ -127,17 +130,17 @@ export const GET: RequestHandler = async ({ url }) => {
         kecamatan: wilayah.kecamatan,
         kota: wilayah.kota,
         gmapsDirectionUrl,
+        gmapsPlaceUrl,
         totalDevices,
         activeDevices
       };
     })
   );
 
-  // 3. Filter outlet dalam radius 50 km
-  const nearbyOutlets = processedOutlets
-    .sort((a, b) => a.distanceKm - b.distanceKm);
+  // 3. Urutkan berdasarkan jarak terdekat
+  const nearbyOutlets = processedOutlets.sort((a, b) => a.distanceKm - b.distanceKm);
 
-  // 4. Jika tidak ada outlet dalam radius 50 km
+  // 4. Jika tidak ada outlet sama sekali
   if (nearbyOutlets.length === 0) {
     const availableCities = Array.from(
       new Set(processedOutlets.map((o) => o.kota))
@@ -145,7 +148,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     return json({
       found: false,
-      message: 'Tidak ada outlet dalam radius 50 km dari lokasi Anda.',
+      message: 'Tidak ada outlet yang ditemukan.',
       availableCities,
       outlets: []
     });
@@ -153,7 +156,6 @@ export const GET: RequestHandler = async ({ url }) => {
 
   return json({
     found: true,
-    radiusKm: 50,
     totalFound: nearbyOutlets.length,
     outlets: nearbyOutlets,
     availableCities: []

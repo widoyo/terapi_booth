@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MapPin, Navigation, Building2, AlertCircle, ArrowLeft, Cpu, ExternalLink } from '@lucide/svelte';
+  import { MapPin, Navigation, Building2, AlertCircle, ArrowLeft, Cpu } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let loading = $state(false);
@@ -78,21 +78,43 @@
           <div class="card bg-base-100 border border-base-300 p-4 shadow-sm space-y-3">
             <div class="flex justify-between items-start gap-2">
               <div>
-                <span class=""></span>
                 <h3 class="font-bold text-base text-primary">{item.kota}</h3>
               </div>
-              <div>
-                
-                <a href={item.gmapsDirectionUrl} target="_blank" rel="noopener noreferrer" class="font-base">
-                <span class="badge badge-outline badge-neutral font-mono text-xs shrink-0">{item.distanceKm} km
-                  <Navigation class="w-4 h-4" />
-                </span></a>
-                </div>
+              
+              <!-- Pengondisian Link Google Maps berdasarkan Jarak (< 50 km Rute, >= 50 km Titik Lokasi) -->
+              <button>
+                {#if item.distanceKm < 50}
+                  <a 
+                    href={item.gmapsDirectionUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    title="Petunjuk Rute ke Outlet"
+                  >
+                    <span class="badge badge-soft badge-neutral font-mono text-xs text-gray-500 shrink-0 flex items-center gap-1 hover:badge-primary transition-colors">
+                      {item.distanceKm}&nbsp;km 
+                      <Navigation class="w-3.5 h-3.5" />
+                    </span>
+                  </a>
+                {:else}
+                  <a 
+                    href={item.gmapsPlaceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    title="Lihat Titik Lokasi Outlet"
+                  >
+                    <span class="badge badge-soft badge-neutral font-mono text-xs text-gray-500 shrink-0 flex items-center gap-1 hover:badge-primary transition-colors">
+                      
+                      <MapPin class="w-3.5 h-3.5" />
+                    </span>
+                  </a>
+                {/if}
+                </button>
             </div>
 
             <p class="text-xs text-base-content/70 leading-relaxed">
               <strong>{item.namaOutlet}</strong><br>
-              {item.alamat || 'Alamat tidak tersedia.'}, Kec. {item.kecamatan}</p>
+              {item.alamat || 'Alamat tidak tersedia.'}, Kec. {item.kecamatan}
+            </p>
 
             <div class="pt-2 border-t border-base-200 flex items-center justify-between text-xs">
               <div class="flex items-center gap-1.5">
@@ -105,10 +127,11 @@
               </div>
 
               <div class="flex gap-2">
-
+              <!-- Belum ada gunanya untuk pilih outlet
                 {#if item.totalDevices > 0}
                   <a href={`/outlet/${item.outletId}`} class="btn btn-xs btn-primary">Pilih Outlet Ini</a>
                 {/if}
+              -->
               </div>
             </div>
           </div>
@@ -120,7 +143,7 @@
           <AlertCircle class="w-6 h-6 text-warning shrink-0 mt-0.5" />
           <div>
             <h3 class="font-bold text-sm text-warning-content">Outlet Belum Tersedia</h3>
-            <p class="text-xs text-base-content/70 mt-1">Belum ada outlet dalam radius 50 km dari lokasi Anda.</p>
+            <p class="text-xs text-base-content/70 mt-1">Belum ada outlet terdaftar di lokasi Anda.</p>
           </div>
         </div>
 
