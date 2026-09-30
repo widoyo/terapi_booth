@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { ArrowLeft, Cpu, CheckCircle2, XCircle, Ticket, ChevronRight, X } from '@lucide/svelte';
+  import { ArrowLeft, Cpu, CheckCircle2, XCircle, Ticket, ChevronRight, X, MapPin } from '@lucide/svelte';
   import { enhance } from '$app/forms';
+  import { onMount } from 'svelte';
 
   let { data, form } = $props();
   let outlet = $derived(data.outlet);
@@ -9,6 +10,60 @@
   // Menyimpan ID pidiBox yang sedang aktif dipilih form-nya
   let activeDeviceId = $state('');
   let isSubmitting = $state(false);
+
+  // Status Lokasi & Jarak
+  let userDistanceKm = $state<number | null>(null);
+  let isCheckingLocation = $state(true);
+
+  // Rumus Haversine untuk menghitung jarak dalam kilometer
+  function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Jari-jari bumi (km)
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  onMount(() => {
+    if (!navigator.geolocation || !outlet.latitude || !outlet.longitude) {
+      isCheckingLocation = false;
+      return;
+    }
+
+    const outletLat = parseFloat(outlet.latitude);
+    const outletLng = parseFloat(outlet.longitude);
+
+    if (isNaN(outletLat) || isNaN(outletLng)) {
+      isCheckingLocation = false;
+      return;
+    }
+
+    // Ambil posisi pengguna untuk memverifikasi jarak ke outlet
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const dist = calculateDistance(latitude, longitude, outletLat, outletLng);
+        userDistanceKm = dist;
+        isCheckingLocation = false;
+      },
+      (err) => {
+        console.warn('Gagal mendapatkan lokasi pengguna:', err.message);
+        isCheckingLocation = false;
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // Apakah pengguna berada dalam radius 30 meter (0.03 km) dari lokasi outlet?
+  let isWithinRange = $derived(
+    userDistanceKm !== null && userDistanceKm <= 0.03
+  );
 
   function toggleDeviceForm(id: string) {
     if (activeDeviceId === id) {
@@ -44,6 +99,24 @@
       </p>
     </div>
 
+    <!-- Peringatan jika pengguna berada di luar jangkauan 30 meter 
+    {#if !isCheckingLocation && !isWithinRange}
+      <div class="alert bg-warning/10 border border-warning/30 p-3 text-xs flex items-start gap-2">
+        <MapPin class="w-4 h-4 text-warning shrink-0 mt-0.5" />
+        <div>
+          <span class="font-bold text-warning-content block">Anda belum berada di lokasi outlet</span>
+          <p class="text-base-content/70 mt-0.5">
+            {#if userDistanceKm !== null}
+              Jarak Anda saat ini: <b>{(userDistanceKm * 1000).toFixed(0)} m</b> dari outlet.
+            {:else}
+              Izin lokasi dibutuhkan untuk mengaktifkan alat di lokasi.
+            {/if}
+            Tombol pengaktifan alat hanya aktif jika Anda berada dalam radius <b>30 meter</b>.
+          </p>
+        </div>
+      </div>
+    {/if}
+    -->
     <!-- Daftar Perangkat pidiBox -->
     <div class="space-y-3">
       <p class="text-sm font-semibold flex items-center gap-1">
@@ -70,7 +143,8 @@
                 {/if}
               </div>
 
-              {#if dev.statusAktif === 1}
+              <!-- Tombol Gunakan Alat ini HANYA tampil jika statusAktif === 1 dan Jarak < 30 meter -->
+              {#if dev.statusAktif === 1 && isWithinRange}
                 <button
                   type="button"
                   onclick={() => toggleDeviceForm(dev.deviceId)}
@@ -83,7 +157,7 @@
             </div>
 
             <!-- Form Input Voucher Sebaris -->
-            {#if activeDeviceId === dev.deviceId}
+            {#if activeDeviceId === dev.deviceId && isWithinRange}
               <form
                 method="POST"
                 action="?/useVoucher"

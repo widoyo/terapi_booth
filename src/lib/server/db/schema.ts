@@ -25,6 +25,9 @@ export const outlets = sqliteTable("outlets", {
   alamat: text("alamat"),
   latitude: text("latitude"),
   longitude: text("longitude"),
+  kota: text("kota"),
+  kecamatan: text("kecamatan"),
+  kelurahan: text("kelurahan"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 }, (table) => ({
   idxOutletsTenant: index("idx_outlets_tenant").on(table.tenantId),
@@ -54,6 +57,7 @@ export const devices = sqliteTable("devices", {
   longitude: text("longitude"),
   hargaKustom: integer("harga_kustom"),
   statusAktif: integer("status_aktif").default(1),
+  lastUp: text("last_up"), // Format ISO String Waktu Boot/Startup Terakhir
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 }, (table) => ({
   idxDevicesHash: index("idx_devices_hash").on(table.deviceHash),

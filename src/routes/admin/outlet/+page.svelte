@@ -16,6 +16,9 @@
     tenantId: data.userTenantId ?? 0,
     namaOutlet: '',
     alamat: '',
+    kota: '',
+    kecamatan: '',
+    kelurahan: '',
     latitude: null as number | null,
     longitude: null as number | null
   });
@@ -86,7 +89,7 @@
 
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(searchQuery)}`
       );
       const results = await res.json();
 
@@ -97,6 +100,12 @@
 
         formState.latitude = Number(lat.toFixed(6));
         formState.longitude = Number(lon.toFixed(6));
+
+        // Ekstraksi detail wilayah dari addressdetails
+        const address = top.address || {};
+        formState.kota = address.city || address.regency || address.county || formState.kota;
+        formState.kecamatan = address.subdistrict || address.district || address.town || formState.kecamatan;
+        formState.kelurahan = address.village || address.suburb || address.quarter || formState.kelurahan;
 
         if (map) {
           map.setView([lat, lon], 16);
@@ -125,6 +134,9 @@
       tenantId: data.userTenantId ?? 0,
       namaOutlet: '',
       alamat: '',
+      kota: '',
+      kecamatan: '',
+      kelurahan: '',
       latitude: null,
       longitude: null
     };
@@ -141,11 +153,17 @@
       tenantId: item.tenantId,
       namaOutlet: item.namaOutlet,
       alamat: item.alamat ?? '',
-      latitude: item.latitude ?? null,
-      longitude: item.longitude ?? null
+      kota: item.kota ?? '',
+      kecamatan: item.kecamatan ?? '',
+      kelurahan: item.kelurahan ?? '',
+      latitude: item.latitude ? Number(item.latitude) : null,
+      longitude: item.longitude ? Number(item.longitude) : null
     };
     modalEl?.showModal();
-    initMap(item.latitude ?? -7.5666, item.longitude ?? 110.8166);
+    initMap(
+      formState.latitude ?? -7.5666,
+      formState.longitude ?? 110.8166
+    );
   }
 
   function closeModal() {
@@ -187,7 +205,7 @@
             {#if isSuperAdmin}
               <th>Tenant</th>
             {/if}
-            <th>Alamat</th>
+            <th>Alamat & Wilayah</th>
             <th>Koordinat</th>
             <th>Terdaftar</th>
             <th class="text-right">Aksi</th>
@@ -210,11 +228,20 @@
                 </td>
               {/if}
 
-              <td class="text-xs text-base-content/80 max-w-xs truncate">
-                {#if item.alamat}
-                  <span class="flex items-center gap-1">
-                    <MapPin class="w-3 h-3 shrink-0 text-base-content/50" /> {item.alamat}
-                  </span>
+              <td class="text-xs text-base-content/80 max-w-xs">
+                {#if item.alamat || item.kota || item.kecamatan || item.kelurahan}
+                  <div class="flex flex-col gap-0.5">
+                    {#if item.alamat}
+                      <span class="flex items-center gap-1 font-medium truncate">
+                        <MapPin class="w-3 h-3 shrink-0 text-base-content/50" /> {item.alamat}
+                      </span>
+                    {/if}
+                    {#if item.kelurahan || item.kecamatan || item.kota}
+                      <span class="text-base-content/60 text-[11px] truncate pl-4">
+                        {[item.kelurahan, item.kecamatan, item.kota].filter(Boolean).join(', ')}
+                      </span>
+                    {/if}
+                  </div>
                 {:else}
                   <span class="italic text-base-content/40">-</span>
                 {/if}
@@ -325,6 +352,42 @@
         ></textarea>
       </label>
 
+      <!-- Input Detail Wilayah -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-xs">Kota / Kabupaten</span></div>
+          <input
+            type="text"
+            name="kota"
+            bind:value={formState.kota}
+            placeholder="Surakarta"
+            class="input input-bordered w-full text-sm"
+          />
+        </label>
+
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-xs">Kecamatan</span></div>
+          <input
+            type="text"
+            name="kecamatan"
+            bind:value={formState.kecamatan}
+            placeholder="Jebres"
+            class="input input-bordered w-full text-sm"
+          />
+        </label>
+
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-xs">Kelurahan</span></div>
+          <input
+            type="text"
+            name="kelurahan"
+            bind:value={formState.kelurahan}
+            placeholder="Purwodiningratan"
+            class="input input-bordered w-full text-sm"
+          />
+        </label>
+      </div>
+
       <!-- Geolocation Search -->
       <div class="form-control w-full">
         <div class="label">
@@ -362,8 +425,7 @@
         <label class="form-control w-full">
           <div class="label"><span class="label-text font-medium text-xs">Latitude</span></div>
           <input
-            type="number"
-            step="any"
+            type="text"
             name="latitude"
             bind:value={formState.latitude}
             placeholder="-7.5666"
@@ -374,8 +436,7 @@
         <label class="form-control w-full">
           <div class="label"><span class="label-text font-medium text-xs">Longitude</span></div>
           <input
-            type="number"
-            step="any"
+            type="text"
             name="longitude"
             bind:value={formState.longitude}
             placeholder="110.8166"

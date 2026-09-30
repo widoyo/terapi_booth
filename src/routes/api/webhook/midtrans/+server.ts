@@ -1,112 +1,89 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import mqtt from 'mqtt';
+import { db } from '$lib/server/db';
+import { devices, therapySessions } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { publishMqttCmd } from '$lib/server/mqtt';
 
-const MQTT_URL = 'mqtt://mqtt.prinus.net:14983';
+export const POST: RequestHandler = async ({ request }) => {
+  let orderId = '';
 
-export const POST: RequestHandler = async ({ request, platform }) => {
-    try {
-        const notification = await request.json();
-        
-        const orderId = notification.order_id;
-        const transactionStatus = notification.transaction_status;
-        const fraudStatus = notification.fraud_status;
-        
-        // Ambil kembali data device_id yang kita titipkan di custom_field1
-        const deviceId = notification.custom_field1; 
+  try {
+    const notification = await request.json();
 
-        console.log(`[Webhook] Menerima notifikasi untuk Order: ${orderId} | Status: ${transactionStatus}`);
+    orderId = notification.order_id;
+    const transactionStatus = notification.transaction_status;
+    const fraudStatus = notification.fraud_status;
+    const deviceId = notification.custom_field1 || null;
 
-        // Kondisi validasi pembayaran sukses sesuai dokumentasi Midtrans
-        if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
-            
-            console.log(`[Webhook] Pembayaran SUKSES untuk pidiBox: ${deviceId}. Menyalakan alat...`);
+    console.log(`[Webhook Midtrans] Order: ${orderId} | Status: ${transactionStatus} | Device: ${deviceId || 'N/A'}`);
 
-// 1. Ambil tenant_id dari tabel devices berdasarkan device_id
-            const device = await platform.env.DB.prepare(
-                "SELECT tenant_id FROM devices WHERE device_id = ?"
-            ).bind(deviceId).first();
+    // 1. Kondisi Pembayaran SUKSES
+    if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
+      console.log(`[Webhook] Pembayaran SUKSES untuk Order: ${orderId}`);
 
-            if (!device) {
-                console.error(`[Webhook Error] Device ID ${deviceId} tidak ditemukan di database.`);
-                return json({ error: 'Device tidak valid' }, { status: 400 });
-            }
+      if (deviceId) {
+        const [device] = await db
+          .select({ tenantId: devices.tenantId })
+          .from(devices)
+          .where(eq(devices.deviceId, deviceId))
+          .limit(1);
 
-            // 2. INSERT data ke tabel therapy_sessions
-            // Catatan: Nama, koordinat, dan kode_promo dikosongkan karena ini jalur pembayaran QRIS langsung murni
-            await platform.env.DB.prepare(`
-                INSERT INTO therapy_sessions (
-                    session_id, 
-                    device_id, 
-                    tenant_id, 
-                    nama_pelanggan, 
-                    status_pembayaran, 
-                    nominal_bayar, 
-                    kode_promo_terpakai, 
-                    latitude, 
-                    longitude
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(
-                orderId,            // session_id
-                deviceId,           // device_id
-                device.tenant_id,   // tenant_id (hasil query di atas)
-                'Pelanggan QRIS',    // nama_pelanggan
-                'SETTLEMENT',       // status_pembayaran
-                notification.gross_amount,        // nominal_bayar
-                null,               // kode_promo_terpakai
-                null,               // latitude
-                null                // longitude
-            ).run();
+        if (device) {
+          // INSERT transaksi ke tabel therapySessions
+          await db.insert(therapySessions).values({
+            sessionId: orderId,
+            deviceId: deviceId,
+            tenantId: device.tenantId,
+            namaPelanggan: 'Pelanggan QRIS',
+            statusPembayaran: 'SETTLEMENT',
+            nominalBayar: Number(notification.gross_amount),
+            kodePromoTerpakai: null,
+            latitude: null,
+            longitude: null
+          });
 
-            console.log(`[D1 Database] Transaksi ${orderId} berhasil dicatat ke therapy_sessions.`);
+          console.log(`[SQLite DB] Transaksi ${orderId} berhasil dicatat.`);
 
-            // Kirim publish ke broker MQTT
-            const client = mqtt.connect(MQTT_URL);
-            client.on('connect', () => {
-                const payload = {
-                    pidibox: deviceId,
-                    cmd: "start",
-                    duration: 30 // Durasi operasi standar
-                };
-                client.publish('pidibox/cmd', JSON.stringify(payload), {}, () => {
-                    client.end();
-                });
-            });
-
-            // Opsional: Catat riwayat transaksi sukses ke Cloudflare D1 di sini jika diperlukan
+          // Kirim perintah menyalakan alat via koneksi MQTT utama
+          publishMqttCmd(`pidibox/cmd/${deviceId}`, {
+            pidibox: deviceId,
+            cmd: 'start',
+            duration: 30
+          });
+        } else {
+          console.error(`[Webhook Error] Device ID ${deviceId} tidak ditemukan di SQLite.`);
         }
-
-        if (transactionStatus === 'expire') {
-            console.log(`[Webhook] Transaksi ${orderId} EXPIRED untuk pidiBox: ${deviceId}. Update DB & kirim sinyal ke frontend...`);
-
-            // 1. Update status di database D1 menjadi EXPIRED
-            await platform.env.DB.prepare(`
-                UPDATE therapy_sessions 
-                SET status_pembayaran = 'EXPIRED' 
-                WHERE session_id = ?
-            `).bind(orderId).run();
-
-            // 2. Kirim sinyal info ke MQTT agar SSE bisa meneruskannya ke frontend
-            // Kita bisa mengirimkan payload yang menyatakan bahwa QRIS sudah tidak berlaku
-            const client = mqtt.connect(MQTT_URL);
-            client.on('connect', () => {
-                const payload = {
-                    pidibox: deviceId,
-                    state: "idle",       // Kembalikan status alat ke idle (bisa discan ulang / input voucher lagi)
-                    transaction: "expired",
-                    order_id: orderId
-                };
-                // Publikasikan ke topik status perangkat yang didengarkan oleh SSE Stream Anda
-                client.publish(`pidibox/status`, JSON.stringify(payload), {}, () => {
-                    client.end();
-                });
-            });
-        }
-
-        return json({ status: 'OK' }, { status: 200 });
-
-    } catch (err) {
-        console.error('[Webhook Error]:', err);
-        return json({ error: 'Invalid payload' }, { status: 400 });
+      }
     }
+
+    // 2. Kondisi Transaksi EXPIRED
+    if (transactionStatus === 'expire') {
+      console.log(`[Webhook] Transaksi ${orderId} EXPIRED.`);
+
+      try {
+        await db
+          .update(therapySessions)
+          .set({ statusPembayaran: 'EXPIRED' })
+          .where(eq(therapySessions.sessionId, orderId));
+      } catch (dbErr) {
+        console.warn(`[SQLite DB Warn] Gagal update EXPIRED untuk ${orderId}:`, dbErr);
+      }
+
+      if (deviceId) {
+        publishMqttCmd(`pidibox/status`, {
+          pidibox: deviceId,
+          state: 'idle',
+          transaction: 'expired',
+          order_id: orderId
+        });
+      }
+    }
+
+    return json({ status: 'OK', message: 'Notification received successfully' }, { status: 200 });
+
+  } catch (err: any) {
+    console.error(`[Webhook Error] Gagal memproses order ${orderId}:`, err);
+    return json({ status: 'ERROR_HANDLED', message: 'Error processing notification' }, { status: 200 });
+  }
 };
